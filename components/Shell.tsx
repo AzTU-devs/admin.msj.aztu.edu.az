@@ -38,6 +38,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [who, setWho] = useState<string>("");
   const [roles, setRoles] = useState<string[]>([]);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
     if (!auth.access) {
@@ -48,6 +49,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       .then((u) => { setWho(`${u.firstName} ${u.lastName}`); setRoles(u.roles || []); setReady(true); })
       .catch(() => { auth.clear(); router.replace("/login"); });
   }, [router]);
+
+  useEffect(() => {
+    setTheme((document.documentElement.getAttribute("data-theme") as "dark" | "light") || "dark");
+  }, []);
+
+  function toggleTheme() {
+    const next = theme === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("msj-admin-theme", next); } catch {}
+    setTheme(next);
+  }
 
   if (!ready) return <div className="login"><div className="muted">Loading…</div></div>;
 
@@ -82,6 +94,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="side__foot">
           <div>{who}</div>
+          <button onClick={toggleTheme}>{theme === "light" ? "◐ Dark mode" : "◑ Light mode"}</button>
           <button onClick={async () => { try { await api.logout(); } catch {} auth.clear(); router.replace("/login"); }}>
             Sign out
           </button>

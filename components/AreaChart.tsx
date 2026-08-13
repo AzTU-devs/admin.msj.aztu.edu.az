@@ -23,8 +23,8 @@ export default function AreaChart({ data, height = 200 }: { data: SeriesPoint[];
         const yy = y(t);
         return (
           <g key={i}>
-            <line x1={pad.l} x2={W - pad.r} y1={yy} y2={yy} stroke="rgba(255,255,255,.07)" />
-            <text x={4} y={yy + 3} fontSize="9" fill="#7f8ea8" fontFamily="monospace">{t}</text>
+            <line x1={pad.l} x2={W - pad.r} y1={yy} y2={yy} style={{ stroke: "var(--rule)" }} />
+            <text x={4} y={yy + 3} fontSize="9" style={{ fill: "var(--ink-3)" }} fontFamily="monospace">{t}</text>
           </g>
         );
       })}
@@ -37,7 +37,7 @@ export default function AreaChart({ data, height = 200 }: { data: SeriesPoint[];
       <path d={area} fill="url(#fill)" />
       <path d={line("views")} fill="none" stroke="#d2a748" strokeWidth="2" />
       <path d={line("downloads")} fill="none" stroke="#5aa0e0" strokeWidth="1.6" strokeDasharray="4 3" />
-      <g fontSize="10" fontFamily="monospace" fill="#b7c2d6">
+      <g fontSize="10" fontFamily="monospace" style={{ fill: "var(--ink-2)" }}>
         <rect x={pad.l} y={H - 12} width="10" height="3" fill="#d2a748" />
         <text x={pad.l + 14} y={H - 9}>Views</text>
         <rect x={pad.l + 70} y={H - 12} width="10" height="3" fill="#5aa0e0" />

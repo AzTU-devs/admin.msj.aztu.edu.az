@@ -79,8 +79,12 @@ export interface LoginResult {
 export const api = {
   login: (email: string, password: string) =>
     request<LoginResult>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  register: (data: { email: string; password: string; firstName: string; lastName: string; affiliation?: string; country?: string; orcid?: string }) =>
-    request<LoginResult>("/api/v1/auth/register", { method: "POST", body: JSON.stringify(data) }),
+  register: (data: {
+    email: string; password: string; firstName: string; lastName: string;
+    title: string; phone: string; degree: string; position: string;
+    affiliation: string; country: string; orcid: string;
+    city?: string; postalCode?: string;
+  }) => request<LoginResult>("/api/v1/auth/register", { method: "POST", body: JSON.stringify(data) }),
   me: () => request<LoginResult["user"]>("/api/v1/auth/me"),
   logout: () => request<void>("/api/v1/auth/logout", { method: "POST" }),
   dashboard: () => request<Dashboard>("/api/v1/admin/dashboard"),
