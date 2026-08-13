@@ -103,6 +103,11 @@ export const api = {
   refreshCitations: () =>
     request<{ articles: number; updated: number; failed: number; totalCitations: number }>(
       "/api/v1/admin/citations/refresh", { method: "POST" }),
+  syncCitations: () =>
+    request<{
+      dois: { publishedArticles: number; matched: number; alreadyHadDoi: number; unmatched: number };
+      citations: { articles: number; updated: number; failed: number; totalCitations: number };
+    }>("/api/v1/admin/citations/sync", { method: "POST" }),
 };
 
 export const ARTICLE_STATUSES = [

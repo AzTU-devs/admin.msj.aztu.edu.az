@@ -56,13 +56,13 @@ export default function ArticlesPage() {
   }
   const [note, setNote] = useState("");
   const [citBusy, setCitBusy] = useState(false);
-  async function refreshCitations() {
+  async function syncCrossref() {
     setCitBusy(true); setErr(""); setNote("");
     try {
-      const r = await api.refreshCitations();
-      setNote(`Citations refreshed from Crossref — ${r.updated}/${r.articles} articles updated${r.totalCitations ? `, ${r.totalCitations} total citations` : ""}${r.failed ? `, ${r.failed} not found` : ""}.`);
+      const r = await api.syncCitations();
+      setNote(`Crossref sync — matched ${r.dois.matched} new DOIs (${r.dois.alreadyHadDoi} already had one, ${r.dois.unmatched} unmatched); citations updated for ${r.citations.updated}/${r.citations.articles} articles${r.citations.totalCitations ? `, ${r.citations.totalCitations} total` : ""}.`);
       load();
-    } catch (e) { setErr(e instanceof Error ? e.message : "Citation refresh failed"); }
+    } catch (e) { setErr(e instanceof Error ? e.message : "Crossref sync failed"); }
     finally { setCitBusy(false); }
   }
 
@@ -77,9 +77,9 @@ export default function ArticlesPage() {
         <div className="panel__h">
           <span>All submissions</span>
           <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
-            <button className="btn btn--ghost btn--sm" disabled={citBusy} onClick={refreshCitations}
-              title="Fetch citation counts from Crossref, by DOI">
-              {citBusy ? "Refreshing…" : "↻ Refresh citations"}
+            <button className="btn btn--ghost btn--sm" disabled={citBusy} onClick={syncCrossref}
+              title="Match missing DOIs from Crossref by title, then fetch citation counts">
+              {citBusy ? "Syncing…" : "↻ Sync from Crossref"}
             </button>
             <select value={filter} onChange={(e) => setFilter(e.target.value)}>
               <option value="">All statuses</option>
