@@ -6,6 +6,10 @@ import { auth, api } from "@/lib/api";
 
 const EDITORIAL = ["ADMIN", "EDITOR", "EDITOR_IN_CHIEF"];
 const NAV: { section?: string; requires: string[]; items: { href: string; label: string }[] }[] = [
+  { requires: ["AUTHOR"], items: [
+    { href: "/submissions", label: "My Submissions" },
+    { href: "/submissions/new", label: "New Submission" },
+  ] },
   { requires: EDITORIAL, items: [
     { href: "/", label: "Dashboard" },
     { href: "/articles", label: "Submissions" },
@@ -61,7 +65,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           </svg>
           <div>
             <div className="brand__t">Machine Science</div>
-            <div className="brand__s">EDITORIAL ADMIN</div>
+            <div className="brand__s">JOURNAL PORTAL</div>
           </div>
         </div>
         <nav className="nav">

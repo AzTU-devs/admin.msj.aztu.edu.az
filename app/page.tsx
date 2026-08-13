@@ -1,19 +1,28 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
 import AreaChart from "@/components/AreaChart";
 import { api, Dashboard, MetricsOverview } from "@/lib/api";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [d, setD] = useState<Dashboard | null>(null);
   const [m, setM] = useState<MetricsOverview | null>(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    Promise.all([api.dashboard(), api.metrics(30)])
-      .then(([dash, met]) => { setD(dash); setM(met); })
-      .catch((e) => setErr(e.message));
-  }, []);
+    // This dashboard is editorial-only; send authors/reviewers to their own area.
+    api.me().then((u) => {
+      const roles = u.roles || [];
+      if (!roles.some((r) => ["ADMIN", "EDITOR_IN_CHIEF", "EDITOR"].includes(r))) {
+        router.replace(roles.includes("REVIEWER") ? "/reviews" : "/submissions");
+        return;
+      }
+      return Promise.all([api.dashboard(), api.metrics(30)])
+        .then(([dash, met]) => { setD(dash); setM(met); });
+    }).catch((e) => setErr(e.message));
+  }, [router]);
 
   return (
     <Shell>

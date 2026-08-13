@@ -79,6 +79,8 @@ export interface LoginResult {
 export const api = {
   login: (email: string, password: string) =>
     request<LoginResult>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  register: (data: { email: string; password: string; firstName: string; lastName: string; affiliation?: string; country?: string; orcid?: string }) =>
+    request<LoginResult>("/api/v1/auth/register", { method: "POST", body: JSON.stringify(data) }),
   me: () => request<LoginResult["user"]>("/api/v1/auth/me"),
   logout: () => request<void>("/api/v1/auth/logout", { method: "POST" }),
   dashboard: () => request<Dashboard>("/api/v1/admin/dashboard"),
@@ -236,4 +238,69 @@ export const WF_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Draft", SUBMITTED: "Submitted", WITH_EDITOR: "With editor-in-chief", UNDER_REVIEW: "Under review",
   REVISION_REQUESTED: "Revision requested", RESUBMITTED: "Resubmitted", ACCEPTED: "Accepted",
   REJECTED: "Rejected", COPYEDITING: "Copyediting", IN_PRODUCTION: "In production", PUBLISHED: "Published", WITHDRAWN: "Withdrawn",
+};
+
+// ==================== AUTHOR SELF-SERVICE (submissions) ====================
+// The author side of the portal: create/edit a manuscript, upload the PDF, and
+// submit it for review. These hit the same author endpoints the public site
+// used before author sign-in moved into this portal.
+export interface AuthorInput {
+  firstName: string; lastName: string; email?: string; affiliation?: string;
+  country?: string; orcid?: string; corresponding: boolean;
+}
+export interface SubmissionInput {
+  title: string; abstractText?: string; keywords?: string; subjectArea?: string;
+  language?: string; issueId?: number | null; authors: AuthorInput[];
+}
+export interface OpenSection {
+  id: number; year: number; number: number | null; numberRoman: string;
+  title: string; submissionDeadline: string | null;
+}
+export interface SubmissionFileDto {
+  id: number; kind: string; originalName: string; sizeBytes: number | null;
+  contentType: string | null; createdAt: string;
+}
+export interface ReviewForAuthor { recommendation: string; commentsToAuthor: string | null; submittedAt: string; }
+export interface SubmissionStatusEvent { fromStatus: string | null; toStatus: string; comment: string | null; at: string; }
+export interface SubmissionSummary {
+  id: number; title: string; status: string; subjectArea: string | null;
+  submittedAt: string | null; updatedAt: string;
+}
+export interface SubmissionDetail extends SubmissionSummary {
+  abstractText: string | null; keywords: string | null; language: string; doi: string | null; createdAt: string;
+  issueId: number | null; issueTitle: string | null;
+  authors: AuthorInput[]; files: SubmissionFileDto[]; history: SubmissionStatusEvent[];
+  reviews: ReviewForAuthor[]; editorNote: string | null; canEdit: boolean;
+}
+
+export const submissions = {
+  listMine: () => request<SubmissionSummary[]>("/api/v1/me/submissions"),
+  get: (id: number) => request<SubmissionDetail>(`/api/v1/submissions/${id}`),
+  create: (input: SubmissionInput) => request<SubmissionDetail>("/api/v1/submissions", { method: "POST", body: JSON.stringify(input) }),
+  update: (id: number, input: SubmissionInput) => request<SubmissionDetail>(`/api/v1/submissions/${id}`, { method: "PUT", body: JSON.stringify(input) }),
+  submit: (id: number) => request<SubmissionDetail>(`/api/v1/submissions/${id}/submit`, { method: "POST" }),
+  openSections: () => request<OpenSection[]>("/api/v1/issues/open"),
+  deleteFile: (id: number, fileId: number) => request<void>(`/api/v1/submissions/${id}/files/${fileId}`, { method: "DELETE" }),
+  uploadFile: async (id: number, file: File, kind = "MANUSCRIPT") => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const headers: Record<string, string> = {};
+    if (auth.access) headers.Authorization = `Bearer ${auth.access}`;
+    const res = await fetch(`${BASE}/api/v1/submissions/${id}/files?kind=${kind}`, { method: "POST", headers, body: fd });
+    if (!res.ok) {
+      let msg = `Upload failed (${res.status})`;
+      try { const b = await res.json(); msg = b.message || msg; } catch {}
+      throw new Error(msg);
+    }
+    return res.json() as Promise<SubmissionFileDto>;
+  },
+};
+
+export const SUBJECT_AREAS = [
+  "Machine design", "Mechanics", "Materials Science and Metallurgy", "Mechanical engineering technology",
+  "Automation and ICT", "Energy and Environment", "Economics and management",
+];
+
+export const REC_LABELS: Record<string, string> = {
+  ACCEPT: "Accept", MINOR_REVISION: "Minor revision", MAJOR_REVISION: "Major revision", REJECT: "Reject",
 };

@@ -136,3 +136,17 @@ select, .btn { background: var(--panel-2); color: var(--ink); border: 1px solid 
 .review-timeline .when { color: var(--ink-3); font-family: var(--f-mono); font-size: .68rem; white-space: nowrap; }
 a.linkish { color: var(--accent-ink); text-decoration: none; }
 a.linkish:hover { text-decoration: underline; }
+
+/* author submission area */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.author-row { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: .5rem; align-items: center; margin-bottom: .5rem; }
+.author-row input { width: 100%; background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: .55rem .7rem; color: var(--ink); font-size: .88rem; }
+.hint { color: var(--ink-3); font-size: .72rem; margin-top: .3rem; }
+.file-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .6rem 0; border-top: 1px solid var(--rule-2); font-size: .88rem; }
+.ok-msg { color: var(--ok); font-size: .82rem; margin-bottom: 1rem; }
+.btn--sm { padding: .3rem .6rem; font-size: .76rem; }
+.btn--danger { background: transparent; color: var(--danger); border: 1px solid rgba(226,96,74,.5); }
+a.panel { transition: border-color .15s; }
+a.panel:hover { border-color: var(--accent); }
+.pill.ACCEPTED { color: var(--ok); border-color: rgba(63,168,122,.4); }
+.pill.REVISION_REQUESTED, .pill.RESUBMITTED, .pill.WITH_EDITOR { color: var(--accent-ink); border-color: rgba(210,167,72,.4); }
