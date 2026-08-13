@@ -44,6 +44,16 @@ export default function ArticlesPage() {
     try { await cms.setArticlePdfUrl(id, url); setNote(`PDF URL set for #${id}`); }
     catch (e) { setErr(e instanceof Error ? e.message : "Failed to set URL"); }
   }
+  async function remove(id: number, title: string) {
+    if (!window.confirm(`Delete "${title || "this submission"}"?\nThis permanently removes the article and all its files, reviews, and history.`)) return;
+    setErr("");
+    try {
+      await api.deleteArticle(id);
+      setRows((rs) => rs.filter((r) => r.id !== id));
+      setTotal((t) => Math.max(0, t - 1));
+      setNote(`Deleted #${id}`);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Delete failed"); }
+  }
   const [note, setNote] = useState("");
 
   return (
@@ -63,7 +73,7 @@ export default function ArticlesPage() {
         </div>
         <table className="table">
           <thead>
-            <tr><th>#</th><th>Title</th><th>Subject</th><th>Status</th><th>Change to</th><th>PDF</th></tr>
+            <tr><th>#</th><th>Title</th><th>Subject</th><th>Status</th><th>Change to</th><th>PDF</th><th>Manage</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -98,9 +108,15 @@ export default function ArticlesPage() {
                     <button className="btn btn--ghost" onClick={() => setPdfUrl(r.id)}>URL</button>
                   </div>
                 </td>
+                <td>
+                  <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
+                    <Link className="btn btn--ghost btn--sm" href={`/articles/${r.id}/edit`}>Edit</Link>
+                    <button className="btn btn--danger btn--sm" onClick={() => remove(r.id, r.title)}>Delete</button>
+                  </div>
+                </td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={6} className="muted">No submissions match this filter.</td></tr>}
+            {!rows.length && <tr><td colSpan={7} className="muted">No submissions match this filter.</td></tr>}
           </tbody>
         </table>
       </div>

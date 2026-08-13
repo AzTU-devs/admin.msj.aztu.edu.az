@@ -95,6 +95,10 @@ export const api = {
     request<void>(`/api/v1/admin/articles/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, comment }) }),
   createArticle: (input: NewArticleInput) =>
     request<{ id: number }>("/api/v1/admin/articles", { method: "POST", body: JSON.stringify(input) }),
+  updateArticle: (id: number, input: NewArticleInput) =>
+    request<void>(`/api/v1/admin/articles/${id}`, { method: "PUT", body: JSON.stringify(input) }),
+  deleteArticle: (id: number) =>
+    request<void>(`/api/v1/admin/articles/${id}`, { method: "DELETE" }),
 };
 
 export const ARTICLE_STATUSES = [
