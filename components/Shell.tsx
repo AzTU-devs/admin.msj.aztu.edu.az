@@ -13,6 +13,7 @@ const NAV: { section?: string; requires: string[]; items: { href: string; label:
   { requires: EDITORIAL, items: [
     { href: "/", label: "Dashboard" },
     { href: "/articles", label: "Submissions" },
+    { href: "/articles/new", label: "Add article" },
   ] },
   { section: "Review", requires: ["REVIEWER"], items: [
     { href: "/reviews", label: "My Reviews" },
@@ -29,6 +30,9 @@ const NAV: { section?: string; requires: string[]; items: { href: string; label:
   { section: "Site", requires: EDITORIAL, items: [
     { href: "/labels", label: "Site Labels" },
     { href: "/settings", label: "Settings" },
+  ] },
+  { section: "Admin", requires: ["ADMIN"], items: [
+    { href: "/users", label: "Users & Roles" },
   ] },
 ];
 

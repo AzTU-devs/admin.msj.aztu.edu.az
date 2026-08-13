@@ -93,6 +93,8 @@ export const api = {
     request<PageResp<ArticleRow>>(`/api/v1/admin/articles?page=${page}&size=${size}${status ? `&status=${status}` : ""}`),
   updateStatus: (id: number, status: string, comment?: string) =>
     request<void>(`/api/v1/admin/articles/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, comment }) }),
+  createArticle: (input: NewArticleInput) =>
+    request<{ id: number }>("/api/v1/admin/articles", { method: "POST", body: JSON.stringify(input) }),
 };
 
 export const ARTICLE_STATUSES = [
@@ -307,4 +309,24 @@ export const SUBJECT_AREAS = [
 
 export const REC_LABELS: Record<string, string> = {
   ACCEPT: "Accept", MINOR_REVISION: "Minor revision", MAJOR_REVISION: "Major revision", REJECT: "Reject",
+};
+
+// ==================== ADD ARTICLE (editorial direct publish) ====================
+export interface NewArticleAuthor {
+  firstName: string; lastName: string; email?: string; affiliation?: string;
+  country?: string; orcid?: string; corresponding: boolean;
+}
+export interface NewArticleInput {
+  title: string; abstractText?: string; keywords?: string; subjectArea?: string; language?: string; doi?: string;
+  issueId?: number | null; pageStart?: number | null; pageEnd?: number | null; articleOrder?: number | null;
+  authors: NewArticleAuthor[];
+}
+
+// ==================== USERS & ROLES (super-admin) ====================
+export interface AdminUser { id: number; email: string; firstName: string; lastName: string; status: string; roles: string[]; }
+export const ROLE_OPTIONS = ["ADMIN", "EDITOR_IN_CHIEF", "EDITOR", "REVIEWER", "AUTHOR"];
+export const users = {
+  list: () => request<AdminUser[]>("/api/v1/admin/users"),
+  setRoles: (id: number, roles: string[]) =>
+    request<AdminUser>(`/api/v1/admin/users/${id}/roles`, { method: "PUT", body: JSON.stringify({ roles }) }),
 };
