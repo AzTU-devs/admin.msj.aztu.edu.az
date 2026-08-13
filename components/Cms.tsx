@@ -5,7 +5,7 @@ import { LOCALES, cms } from "@/lib/api";
 export type Field = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "boolean" | "url" | "select" | "i18n" | "i18n-textarea" | "image" | "file";
+  type: "text" | "textarea" | "number" | "boolean" | "url" | "select" | "i18n" | "i18n-textarea" | "image" | "file" | "date";
   options?: string[];
   colInTable?: boolean;
 };
@@ -72,10 +72,10 @@ type Api<T> = {
 };
 
 export function CollectionEditor<T extends { id?: number }>({
-  title, subtitle, fields, api, blank, rowTitle,
+  title, subtitle, fields, api, blank, rowTitle, extra,
 }: {
   title: string; subtitle?: string; fields: Field[]; api: Api<T>;
-  blank: () => Partial<T>; rowTitle: (item: T) => string;
+  blank: () => Partial<T>; rowTitle: (item: T) => string; extra?: React.ReactNode;
 }) {
   const [items, setItems] = useState<T[]>([]);
   const [editing, setEditing] = useState<Partial<T> | null>(null);
@@ -121,7 +121,10 @@ export function CollectionEditor<T extends { id?: number }>({
           <h1 className="page-h">{title}</h1>
           {subtitle && <p className="page-sub">{subtitle}</p>}
         </div>
-        <button className="btn" onClick={() => setEditing(blank())}>+ Add</button>
+        <div style={{ display: "flex", gap: ".6rem" }}>
+          {extra}
+          <button className="btn" onClick={() => setEditing(blank())}>+ Add</button>
+        </div>
       </div>
       {err && <div className="err">{err}</div>}
 
@@ -174,7 +177,7 @@ export function CollectionEditor<T extends { id?: number }>({
                       {(f.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ) : (
-                    <input type={f.type === "number" ? "number" : "text"} value={e[f.key] ?? ""}
+                    <input type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"} value={e[f.key] ?? ""}
                       onChange={(ev) => setEditing({ ...editing, [f.key]: f.type === "number" ? Number(ev.target.value) : ev.target.value } as any)} />
                   )}
                 </div>

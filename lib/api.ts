@@ -108,7 +108,7 @@ export interface AuthorStep { id?: number; stepNo?: string; title: I18n; body: I
 export interface AuthorTerm { id?: number; title: I18n; body: I18n; sortOrder: number; }
 export interface Announcement { id?: number; title: I18n; body: I18n; imageUrl?: string; linkUrl?: string; pinned: boolean; status: string; publishedAt: string; sortOrder: number; }
 export interface ContentPage { id?: number; slug: string; title: I18n; body: I18n; status: string; sortOrder: number; }
-export interface Issue { id?: number; volume?: number; number?: number; year: number; title: string; description?: string; coverUrl?: string; fullPdfUrl?: string; doi?: string; slug: string; status: string; publishedAt?: string; sortOrder: number; }
+export interface Issue { id?: number; volume?: number; number?: number; year: number; title: string; description?: string; coverUrl?: string; fullPdfUrl?: string; doi?: string; slug: string; status: string; publishedAt?: string; submissionDeadline?: string; sortOrder: number; }
 export interface SiteText { key: string; value: I18n; }
 export interface JournalSettings {
   journalTitle: I18n; tagline: I18n; about: I18n; issnPrint?: string; issnOnline?: string;
@@ -135,6 +135,7 @@ export const cms = {
   announcements: crud<Announcement>("/api/v1/admin/announcements"),
   pages: crud<ContentPage>("/api/v1/admin/pages"),
   issues: crud<Issue>("/api/v1/admin/issues"),
+  openYear: (year: number) => request<Issue[]>(`/api/v1/admin/years/${year}`, { method: "POST" }),
   texts: {
     list: () => request<SiteText[]>("/api/v1/admin/texts"),
     save: (key: string, value: I18n) =>
