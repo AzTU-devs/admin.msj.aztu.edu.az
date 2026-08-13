@@ -55,6 +55,16 @@ export default function ArticlesPage() {
     } catch (e) { setErr(e instanceof Error ? e.message : "Delete failed"); }
   }
   const [note, setNote] = useState("");
+  const [citBusy, setCitBusy] = useState(false);
+  async function refreshCitations() {
+    setCitBusy(true); setErr(""); setNote("");
+    try {
+      const r = await api.refreshCitations();
+      setNote(`Citations refreshed from Crossref — ${r.updated}/${r.articles} articles updated${r.totalCitations ? `, ${r.totalCitations} total citations` : ""}${r.failed ? `, ${r.failed} not found` : ""}.`);
+      load();
+    } catch (e) { setErr(e instanceof Error ? e.message : "Citation refresh failed"); }
+    finally { setCitBusy(false); }
+  }
 
   return (
     <Shell>
@@ -66,10 +76,16 @@ export default function ArticlesPage() {
       <div className="panel">
         <div className="panel__h">
           <span>All submissions</span>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">All statuses</option>
-            {ARTICLE_STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll("_", " ")}</option>)}
-          </select>
+          <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+            <button className="btn btn--ghost btn--sm" disabled={citBusy} onClick={refreshCitations}
+              title="Fetch citation counts from Crossref, by DOI">
+              {citBusy ? "Refreshing…" : "↻ Refresh citations"}
+            </button>
+            <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <option value="">All statuses</option>
+              {ARTICLE_STATUSES.map((s) => <option key={s} value={s}>{s.replaceAll("_", " ")}</option>)}
+            </select>
+          </div>
         </div>
         <table className="table">
           <thead>

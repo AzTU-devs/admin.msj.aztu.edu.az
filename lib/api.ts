@@ -99,6 +99,9 @@ export const api = {
     request<void>(`/api/v1/admin/articles/${id}`, { method: "PUT", body: JSON.stringify(input) }),
   deleteArticle: (id: number) =>
     request<void>(`/api/v1/admin/articles/${id}`, { method: "DELETE" }),
+  refreshCitations: () =>
+    request<{ articles: number; updated: number; failed: number; totalCitations: number }>(
+      "/api/v1/admin/citations/refresh", { method: "POST" }),
 };
 
 export const ARTICLE_STATUSES = [
