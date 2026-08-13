@@ -67,6 +67,7 @@ export interface MetricsOverview {
 export interface ArticleRow {
   id: number; title: string; status: string; subjectArea: string | null;
   doi: string | null; submitterId: number; submittedAt: string | null; createdAt: string;
+  views: number; downloads: number; citations: number;
 }
 export interface PageResp<T> {
   content: T[]; page: number; size: number; totalElements: number; totalPages: number; last: boolean;

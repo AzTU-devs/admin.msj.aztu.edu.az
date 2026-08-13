@@ -89,7 +89,7 @@ export default function ArticlesPage() {
         </div>
         <table className="table">
           <thead>
-            <tr><th>#</th><th>Title</th><th>Subject</th><th>Status</th><th>Change to</th><th>PDF</th><th>Manage</th></tr>
+            <tr><th>#</th><th>Title</th><th>Subject</th><th>Status</th><th>Citations</th><th>Change to</th><th>PDF</th><th>Manage</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -101,6 +101,10 @@ export default function ArticlesPage() {
                 </td>
                 <td className="muted">{r.subjectArea || "—"}</td>
                 <td><span className={`pill ${r.status}`}>{r.status.replaceAll("_", " ")}</span></td>
+                <td>
+                  <b style={{ fontSize: "1rem" }}>{r.citations}</b>
+                  <div className="muted" style={{ fontSize: ".66rem" }}>{r.views} views · {r.downloads} dl</div>
+                </td>
                 <td>
                   <select
                     defaultValue=""
@@ -132,7 +136,7 @@ export default function ArticlesPage() {
                 </td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={7} className="muted">No submissions match this filter.</td></tr>}
+            {!rows.length && <tr><td colSpan={8} className="muted">No submissions match this filter.</td></tr>}
           </tbody>
         </table>
       </div>
