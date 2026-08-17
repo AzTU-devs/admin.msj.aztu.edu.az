@@ -60,7 +60,9 @@ export default function ArticlesPage() {
     setCitBusy(true); setErr(""); setNote("");
     try {
       const r = await api.syncCitations();
-      setNote(`Crossref sync — matched ${r.dois.matched} new DOIs (${r.dois.alreadyHadDoi} already had one, ${r.dois.unmatched} unmatched); citations updated for ${r.citations.updated}/${r.citations.articles} articles${r.citations.totalCitations ? `, ${r.citations.totalCitations} total` : ""}.`);
+      // `failed` used to be omitted here, which made "updated 0/51" read as a
+      // no-op when in fact all 51 lookups had errored.
+      setNote(`Crossref sync — matched ${r.dois.matched} new DOIs (${r.dois.alreadyHadDoi} already had one, ${r.dois.unmatched} unmatched); citations updated for ${r.citations.updated}/${r.citations.articles} articles${r.citations.failed ? `, ${r.citations.failed} FAILED` : ""}${r.citations.totalCitations ? `, ${r.citations.totalCitations} total` : ""}.`);
       load();
     } catch (e) { setErr(e instanceof Error ? e.message : "Crossref sync failed"); }
     finally { setCitBusy(false); }
