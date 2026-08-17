@@ -15,6 +15,8 @@ export default function SubmissionDetailPage() {
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState("MANUSCRIPT");
+  const [uploading, setUploading] = useState(false);
+  const [pct, setPct] = useState(0);
 
   const load = useCallback(() => {
     submissions.get(sid).then((det) => {
@@ -36,9 +38,10 @@ export default function SubmissionDetailPage() {
     finally { setBusy(false); }
   }
   async function upload(file: File) {
-    setErr(""); setOk("");
-    try { await submissions.uploadFile(sid, file, kind); setOk("File uploaded."); load(); }
+    setErr(""); setOk(""); setPct(0); setUploading(true);
+    try { await submissions.uploadFile(sid, file, kind, (p) => setPct(p)); setOk("File uploaded."); load(); }
     catch (e) { setErr(e instanceof Error ? e.message : "Upload failed"); }
+    finally { setUploading(false); setPct(0); }
   }
   async function removeFile(fileId: number) {
     setErr("");
@@ -122,9 +125,16 @@ export default function SubmissionDetailPage() {
               <option value="SUPPLEMENTARY">Supplementary</option>
               <option value="COVER_LETTER">Cover letter</option>
             </select>
-            <button className="btn btn--ghost btn--sm" onClick={() => fileInput.current?.click()}>Upload file</button>
+            <button className="btn btn--ghost btn--sm" disabled={uploading} onClick={() => fileInput.current?.click()}>
+              {uploading ? `Uploading… ${pct}%` : "Upload file"}
+            </button>
             <input ref={fileInput} type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
-            {!hasManuscript && <span className="muted">A manuscript PDF is required to submit.</span>}
+            {uploading && (
+              <span className="pdf-bar" style={{ flex: 1, minWidth: 140 }} aria-label={`Upload ${pct}% complete`}>
+                <span className="pdf-bar__fill" style={{ width: `${pct}%` }} />
+              </span>
+            )}
+            {!uploading && !hasManuscript && <span className="muted">A manuscript PDF is required to submit.</span>}
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ARTICLE_FILE_KINDS,
   ArticleFileDto,
+  MAX_UPLOAD_BYTES,
   cms,
   isExternalFile,
   openFile,
@@ -54,6 +55,7 @@ export default function PdfManager({
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pct, setPct] = useState(0);
   const [dragging, setDragging] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
@@ -90,10 +92,19 @@ export default function PdfManager({
       setErr("That file is empty.");
       return;
     }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setErr(
+        `“${file.name}” is ${(file.size / 1024 / 1024).toFixed(0)} MB — the limit is ${
+          MAX_UPLOAD_BYTES / 1024 / 1024
+        } MB.`
+      );
+      return;
+    }
 
     setBusy(true);
+    setPct(0);
     try {
-      const saved = await cms.uploadArticleFile(articleId, file, kind);
+      const saved = await cms.uploadArticleFile(articleId, file, kind, (p) => setPct(p));
       flash(
         saved.version > 1
           ? `${KIND_LABEL[kind] ?? kind} replaced — now version ${saved.version}.`
@@ -105,6 +116,7 @@ export default function PdfManager({
       setErr(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setBusy(false);
+      setPct(0);
     }
   }
 
@@ -272,11 +284,17 @@ export default function PdfManager({
         }}
         onClick={() => !busy && input.current?.click()}
       >
-        <b>{busy ? "Uploading…" : `Drop a file here, or click to choose`}</b>
-        <span className="muted">
-          Uploading a {KIND_LABEL[kind] ?? kind} again replaces the current one — the previous version is
-          kept.
-        </span>
+        <b>{busy ? `Uploading… ${pct}%` : "Drop a file here, or click to choose"}</b>
+        {busy ? (
+          <span className="pdf-bar" aria-label={`Upload ${pct}% complete`}>
+            <span className="pdf-bar__fill" style={{ width: `${pct}%` }} />
+          </span>
+        ) : (
+          <span className="muted">
+            Uploading a {KIND_LABEL[kind] ?? kind} again replaces the current one — the previous version is
+            kept. Up to {MAX_UPLOAD_BYTES / 1024 / 1024} MB.
+          </span>
+        )}
         <input
           ref={input}
           type="file"

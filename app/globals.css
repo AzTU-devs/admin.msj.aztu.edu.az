@@ -198,3 +198,14 @@ a.panel:hover { border-color: var(--accent); }
   .pdf-live { align-items: flex-start; }
   .file-row { flex-direction: column; align-items: flex-start; gap: .5rem; }
 }
+
+/* Upload progress. XHR reports upload.onprogress; fetch cannot, which is why
+   lib/api.ts uses XMLHttpRequest for multipart. */
+.pdf-bar {
+  display: block; width: 100%; height: 6px; border-radius: 3px;
+  background: var(--rule); overflow: hidden;
+}
+.pdf-bar__fill {
+  display: block; height: 100%; background: var(--accent);
+  transition: width .2s ease;
+}

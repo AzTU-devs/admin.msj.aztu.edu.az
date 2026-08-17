@@ -173,18 +173,12 @@ export const cms = {
   // there is no replace endpoint and none is needed.
   articleFiles: (articleId: number) =>
     request<ArticleFileDto[]>(`/api/v1/admin/articles/${articleId}/files`),
-  uploadArticleFile: async (articleId: number, file: File, kind = "PUBLISHED_PDF") => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const headers: Record<string, string> = {};
-    if (auth.access) headers.Authorization = `Bearer ${auth.access}`;
-    const res = await fetch(
-      `${BASE}/api/v1/admin/articles/${articleId}/files?kind=${encodeURIComponent(kind)}`,
-      { method: "POST", headers, body: fd }
-    );
-    if (!res.ok) throw new Error(await uploadError(res));
-    return res.json() as Promise<ArticleFileDto>;
-  },
+  uploadArticleFile: (articleId: number, file: File, kind = "PUBLISHED_PDF", onProgress?: ProgressFn) =>
+    uploadWithProgress<ArticleFileDto>(
+      `/api/v1/admin/articles/${articleId}/files?kind=${encodeURIComponent(kind)}`,
+      file,
+      onProgress
+    ),
   deleteArticleFile: (articleId: number, fileId: number) =>
     request<void>(`/api/v1/admin/articles/${articleId}/files/${fileId}`, { method: "DELETE" }),
   setArticlePdfUrl: (articleId: number, url: string) =>
@@ -233,17 +227,73 @@ export function isExternalFile(f: ArticleFileDto): boolean {
   return /^https?:\/\//.test(f.storageKey || "");
 }
 
+/** The server's ceiling, mirrored client-side so a doomed upload fails instantly. */
+export const MAX_UPLOAD_BYTES = 400 * 1024 * 1024;
+
+export type ProgressFn = (percent: number, loaded: number, total: number) => void;
+
+/**
+ * Multipart upload with real progress.
+ *
+ * `fetch` cannot report *upload* progress — its streaming half is
+ * request-body-agnostic in every shipping browser — so a 400MB manuscript
+ * would sit on a dead spinner for minutes with no sign it was working.
+ * XMLHttpRequest still exposes `upload.onprogress`, which is the only reason
+ * it is used here rather than the `request()` helper above.
+ */
+function uploadWithProgress<T>(path: string, file: File, onProgress?: ProgressFn): Promise<T> {
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return Promise.reject(
+      new Error(
+        `That file is ${(file.size / 1024 / 1024).toFixed(0)} MB — the limit is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`
+      )
+    );
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${BASE}${path}`);
+    if (auth.access) xhr.setRequestHeader("Authorization", `Bearer ${auth.access}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100), e.loaded, e.total);
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(xhr.responseText ? (JSON.parse(xhr.responseText) as T) : (undefined as T));
+        } catch {
+          reject(new Error("The server returned a malformed response."));
+        }
+        return;
+      }
+      reject(new Error(uploadErrorMessage(xhr.status, xhr.responseText)));
+    };
+    // A body rejected mid-stream (nginx client_max_body_size) surfaces as a
+    // reset connection, not as a status — say so rather than "unknown error".
+    xhr.onerror = () =>
+      reject(new Error("The connection dropped during upload — the file may exceed the server's limit."));
+    xhr.ontimeout = () => reject(new Error("The upload timed out."));
+    xhr.send(fd);
+  });
+}
+
 /** Pull a useful message out of a failed multipart upload. */
-async function uploadError(res: Response): Promise<string> {
-  if (res.status === 413) return "The file is too large for the server's upload limit.";
-  if (res.status === 401 || res.status === 403) return "Not authorised — sign in again.";
+function uploadErrorMessage(status: number, body: string): string {
+  if (status === 413) return "The file is too large for the server's upload limit.";
+  if (status === 401 || status === 403) return "Not authorised — sign in again.";
   try {
-    const body = await res.json();
-    if (body?.message) return String(body.message);
+    const parsed = JSON.parse(body);
+    if (parsed?.message) return String(parsed.message);
   } catch {
     /* not JSON */
   }
-  return `Upload failed (${res.status})`;
+  return `Upload failed (${status})`;
 }
 
 export const LOCALES = ["en", "az", "ru"] as const;
@@ -357,19 +407,12 @@ export const submissions = {
   submit: (id: number) => request<SubmissionDetail>(`/api/v1/submissions/${id}/submit`, { method: "POST" }),
   openSections: () => request<OpenSection[]>("/api/v1/issues/open"),
   deleteFile: (id: number, fileId: number) => request<void>(`/api/v1/submissions/${id}/files/${fileId}`, { method: "DELETE" }),
-  uploadFile: async (id: number, file: File, kind = "MANUSCRIPT") => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const headers: Record<string, string> = {};
-    if (auth.access) headers.Authorization = `Bearer ${auth.access}`;
-    const res = await fetch(`${BASE}/api/v1/submissions/${id}/files?kind=${kind}`, { method: "POST", headers, body: fd });
-    if (!res.ok) {
-      let msg = `Upload failed (${res.status})`;
-      try { const b = await res.json(); msg = b.message || msg; } catch {}
-      throw new Error(msg);
-    }
-    return res.json() as Promise<SubmissionFileDto>;
-  },
+  uploadFile: (id: number, file: File, kind = "MANUSCRIPT", onProgress?: ProgressFn) =>
+    uploadWithProgress<SubmissionFileDto>(
+      `/api/v1/submissions/${id}/files?kind=${encodeURIComponent(kind)}`,
+      file,
+      onProgress
+    ),
 };
 
 export const SUBJECT_AREAS = [
