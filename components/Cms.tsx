@@ -14,16 +14,17 @@ export type Field = {
 export function AssetField({ label, value, onChange, accept, folder }:
   { label: string; value: string | undefined; onChange: (v: string) => void; accept: string; folder: string }) {
   const [busy, setBusy] = useState(false);
+  const [pct, setPct] = useState(0);
   const [err, setErr] = useState("");
   const isImage = accept.includes("image");
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    setBusy(true); setErr("");
-    try { const r = await cms.uploadAsset(f, folder); onChange(r.url); }
+    setBusy(true); setErr(""); setPct(0);
+    try { const r = await cms.uploadAsset(f, folder, (p) => setPct(p)); onChange(r.url); }
     catch (er) { setErr(er instanceof Error ? er.message : "Upload failed"); }
-    finally { setBusy(false); e.target.value = ""; }
+    finally { setBusy(false); setPct(0); e.target.value = ""; }
   }
 
   return (
@@ -32,10 +33,15 @@ export function AssetField({ label, value, onChange, accept, folder }:
       <div className="asset">
         <input className="asset__url" placeholder="Paste a URL, or upload →" value={value || ""} onChange={(e) => onChange(e.target.value)} />
         <label className={"btn btn--ghost asset__btn" + (busy ? " is-busy" : "")}>
-          {busy ? "Uploading…" : "Upload"}
+          {busy ? `Uploading… ${pct}%` : "Upload"}
           <input type="file" accept={accept} hidden disabled={busy} onChange={onFile} />
         </label>
       </div>
+      {busy && (
+        <span className="pdf-bar" style={{ marginTop: ".5rem" }} aria-label={`Upload ${pct}% complete`}>
+          <span className="pdf-bar__fill" style={{ width: `${pct}%` }} />
+        </span>
+      )}
       {err && <div className="err">{err}</div>}
       {value && isImage && <img className="asset__preview" src={value} alt="" />}
       {value && !isImage && <a className="asset__link" href={value} target="_blank" rel="noopener">{value}</a>}

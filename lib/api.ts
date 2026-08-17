@@ -187,15 +187,14 @@ export const cms = {
       body: JSON.stringify({ url }),
     }),
   // Generic asset upload -> returns a public /files URL to store in any field.
-  uploadAsset: async (file: File, folder = "misc"): Promise<{ url: string; name: string; size: number; contentType: string }> => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const headers: Record<string, string> = {};
-    if (auth.access) headers.Authorization = `Bearer ${auth.access}`;
-    const res = await fetch(`${BASE}/api/v1/admin/uploads?folder=${encodeURIComponent(folder)}`, { method: "POST", headers, body: fd });
-    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-    return res.json();
-  },
+  // Used for covers, logos, board portraits and full-issue PDFs, so it carries
+  // the same progress reporting and size guard as the article uploader.
+  uploadAsset: (file: File, folder = "misc", onProgress?: ProgressFn) =>
+    uploadWithProgress<{ url: string; name: string; size: number; contentType: string }>(
+      `/api/v1/admin/uploads?folder=${encodeURIComponent(folder)}`,
+      file,
+      onProgress
+    ),
 };
 
 /** A file attached to an article (ArticleFile entity as the admin API returns it). */
