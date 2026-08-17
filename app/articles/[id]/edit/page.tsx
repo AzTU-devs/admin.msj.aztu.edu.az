@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
+import PdfManager from "@/components/PdfManager";
 import { editorial, cms, api, Issue, NewArticleInput, NewArticleAuthor, SUBJECT_AREAS } from "@/lib/api";
 
 const EMPTY_AUTHOR: NewArticleAuthor = { firstName: "", lastName: "", email: "", affiliation: "", country: "", orcid: "", corresponding: false };
@@ -57,7 +58,7 @@ export default function EditArticlePage() {
     <Shell>
       <a className="linkish" href={`/articles/${aid}`}>← Back to article</a>
       <h1 className="page-h" style={{ marginTop: ".5rem" }}>Edit article</h1>
-      <p className="page-sub">Update the metadata and authors. (Page range / order and PDF are managed on the article page.)</p>
+      <p className="page-sub">Update the metadata, authors and the article&apos;s PDF.</p>
       {err && <div className="err">{err}</div>}
 
       <div className="panel">
@@ -105,6 +106,10 @@ export default function EditArticlePage() {
         ))}
         <button type="button" className="btn btn--ghost btn--sm" onClick={addAuthor}>+ Add author</button>
       </div>
+
+      {/* Files are saved the moment they are uploaded — independent of the
+          metadata form's Save, so a PDF is never lost by cancelling. */}
+      <PdfManager articleId={aid} />
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: ".7rem" }}>
         <button className="btn btn--ghost" onClick={() => router.push(`/articles/${aid}`)}>Cancel</button>

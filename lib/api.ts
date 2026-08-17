@@ -166,17 +166,32 @@ export const cms = {
     get: () => request<JournalSettings>("/api/v1/admin/settings"),
     save: (s: JournalSettings) => request<JournalSettings>("/api/v1/admin/settings", { method: "PUT", body: JSON.stringify(s) }),
   },
+  // ---- article files -----------------------------------------------------
+  // The backend versions each (article, kind) pair automatically: uploading a
+  // second PUBLISHED_PDF creates v2 and the public /articles/{id}/pdf endpoint
+  // serves the highest version. So "change the PDF" is just another upload —
+  // there is no replace endpoint and none is needed.
+  articleFiles: (articleId: number) =>
+    request<ArticleFileDto[]>(`/api/v1/admin/articles/${articleId}/files`),
   uploadArticleFile: async (articleId: number, file: File, kind = "PUBLISHED_PDF") => {
     const fd = new FormData();
     fd.append("file", file);
     const headers: Record<string, string> = {};
     if (auth.access) headers.Authorization = `Bearer ${auth.access}`;
-    const res = await fetch(`${BASE}/api/v1/admin/articles/${articleId}/files?kind=${kind}`, { method: "POST", headers, body: fd });
-    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-    return res.json();
+    const res = await fetch(
+      `${BASE}/api/v1/admin/articles/${articleId}/files?kind=${encodeURIComponent(kind)}`,
+      { method: "POST", headers, body: fd }
+    );
+    if (!res.ok) throw new Error(await uploadError(res));
+    return res.json() as Promise<ArticleFileDto>;
   },
+  deleteArticleFile: (articleId: number, fileId: number) =>
+    request<void>(`/api/v1/admin/articles/${articleId}/files/${fileId}`, { method: "DELETE" }),
   setArticlePdfUrl: (articleId: number, url: string) =>
-    request(`/api/v1/admin/articles/${articleId}/pdf-url`, { method: "POST", body: JSON.stringify({ url }) }),
+    request<ArticleFileDto>(`/api/v1/admin/articles/${articleId}/pdf-url`, {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
   // Generic asset upload -> returns a public /files URL to store in any field.
   uploadAsset: async (file: File, folder = "misc"): Promise<{ url: string; name: string; size: number; contentType: string }> => {
     const fd = new FormData();
@@ -188,6 +203,48 @@ export const cms = {
     return res.json();
   },
 };
+
+/** A file attached to an article (ArticleFile entity as the admin API returns it). */
+export interface ArticleFileDto {
+  id: number;
+  articleId: number;
+  kind: string;
+  originalName: string;
+  storageKey: string;
+  contentType: string | null;
+  sizeBytes: number | null;
+  version: number;
+  uploadedBy: number | null;
+  createdAt: string | null;
+}
+
+/** The kinds the backend recognises, in the order an editor works through them. */
+export const ARTICLE_FILE_KINDS: { value: string; label: string; hint?: string }[] = [
+  { value: "PUBLISHED_PDF", label: "Published PDF", hint: "Served by the public Download PDF button" },
+  { value: "CAMERA_READY", label: "Camera-ready" },
+  { value: "MANUSCRIPT", label: "Manuscript" },
+  { value: "REVISION", label: "Revision" },
+  { value: "SUPPLEMENTARY", label: "Supplementary" },
+  { value: "COVER_LETTER", label: "Cover letter" },
+];
+
+/** A stored file's key is a path; an externally linked one is a URL. */
+export function isExternalFile(f: ArticleFileDto): boolean {
+  return /^https?:\/\//.test(f.storageKey || "");
+}
+
+/** Pull a useful message out of a failed multipart upload. */
+async function uploadError(res: Response): Promise<string> {
+  if (res.status === 413) return "The file is too large for the server's upload limit.";
+  if (res.status === 401 || res.status === 403) return "Not authorised — sign in again.";
+  try {
+    const body = await res.json();
+    if (body?.message) return String(body.message);
+  } catch {
+    /* not JSON */
+  }
+  return `Upload failed (${res.status})`;
+}
 
 export const LOCALES = ["en", "az", "ru"] as const;
 

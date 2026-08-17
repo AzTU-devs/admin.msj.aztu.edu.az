@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Shell from "@/components/Shell";
+import PdfManager from "@/components/PdfManager";
 import { editorial, api, cms, openFile, EditorialArticle, ReviewerUser, Issue, WF_STATUS_LABELS } from "@/lib/api";
 
 const REC_LABELS: Record<string, string> = { ACCEPT: "Accept", MINOR_REVISION: "Minor revision", MAJOR_REVISION: "Major revision", REJECT: "Reject" };
@@ -78,6 +79,10 @@ export default function EditorialArticlePage() {
               {a.files.length === 0 && <span className="muted">No files.</span>}
             </div>
           </div>
+
+          {/* Attach or replace the PDF without leaving the editorial screen —
+              previously the only upload control lived on the articles list. */}
+          <PdfManager articleId={aid} onChange={load} />
 
           <div className="panel">
             <div className="panel__h">Reviews <small>{a.reviews.length}</small></div>
