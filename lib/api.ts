@@ -307,6 +307,11 @@ export interface WfStatusEvent { fromStatus: string | null; toStatus: string; ch
 export interface EditorialArticle {
   id: number; title: string; abstractText: string | null; keywords: string | null; subjectArea: string | null;
   language: string; status: string; doi: string | null; issueId: number | null; submittedAt: string | null; createdAt: string;
+  // Round-tripped by the edit form. Before these existed the form reloaded them
+  // as null and every save wiped the article's pagination and issue position.
+  pageStart: number | null; pageEnd: number | null; articleOrder: number | null;
+  // The parent issue's, for display only — volume and number belong to the issue.
+  issueTitle: string | null; issueVolume: number | null; issueNumber: number | null;
   authors: WfAuthor[]; files: WfFile[]; assignments: AssignmentDto[]; reviews: EditorReview[]; history: WfStatusEvent[];
 }
 

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
 import PdfManager from "@/components/PdfManager";
-import { editorial, cms, api, Issue, NewArticleInput, NewArticleAuthor, SUBJECT_AREAS } from "@/lib/api";
+import { editorial, cms, api, EditorialArticle, Issue, NewArticleInput, NewArticleAuthor, SUBJECT_AREAS } from "@/lib/api";
 
 const EMPTY_AUTHOR: NewArticleAuthor = { firstName: "", lastName: "", email: "", affiliation: "", country: "", orcid: "", corresponding: false };
 
@@ -13,6 +13,7 @@ export default function EditArticlePage() {
   const router = useRouter();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [v, setV] = useState<NewArticleInput | null>(null);
+  const [article, setArticle] = useState<EditorialArticle | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -21,7 +22,13 @@ export default function EditArticlePage() {
       setV({
         title: a.title, abstractText: a.abstractText || "", keywords: a.keywords || "",
         subjectArea: a.subjectArea || "", language: a.language || "en", doi: a.doi || "",
-        issueId: a.issueId, pageStart: null, pageEnd: null, articleOrder: null,
+        // Round-trip these. Loading them as null and PUTting the whole object
+        // back is what silently erased an article's page range and its position
+        // in the issue on every save.
+        issueId: a.issueId,
+        pageStart: a.pageStart,
+        pageEnd: a.pageEnd,
+        articleOrder: a.articleOrder,
         authors: a.authors.length
           ? a.authors.map((au) => ({
               firstName: au.firstName, lastName: au.lastName, email: au.email || "",
@@ -30,6 +37,7 @@ export default function EditArticlePage() {
             }))
           : [{ ...EMPTY_AUTHOR, corresponding: true }],
       });
+      setArticle(a);
     }).catch((e) => setErr(e.message));
   }, [aid]);
 
@@ -51,6 +59,14 @@ export default function EditArticlePage() {
     try { await api.updateArticle(aid, v); router.push(`/articles/${aid}`); }
     catch (e) { setErr(e instanceof Error ? e.message : "Could not save"); setBusy(false); }
   }
+
+  // Roman for the number, the way the journal prints it.
+  const ROMAN: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "IV" };
+  const volumeLabel = article?.issueVolume != null ? String(article.issueVolume) : "—";
+  const numberLabel =
+    article?.issueNumber != null
+      ? `${ROMAN[article.issueNumber] ?? article.issueNumber} (${article.issueNumber})`
+      : "—";
 
   if (!v) return <Shell><div className="muted">{err ? <span className="err">{err}</span> : "Loading…"}</div></Shell>;
 
@@ -82,6 +98,37 @@ export default function EditArticlePage() {
           <input value={v.keywords || ""} onChange={(e) => set("keywords", e.target.value)} placeholder="comma-separated" /></div>
         <div className="field"><label>DOI</label>
           <input value={v.doi || ""} onChange={(e) => set("doi", e.target.value)} placeholder="10.6141/… (leave blank if none)" /></div>
+
+        {/* Volume and number are the issue's, not the article's — shown so an
+            editor can confirm the citation without opening Issues, but edited
+            there. Duplicating them onto the article would let the two drift,
+            and every citation export reads the issue. */}
+        <div className="grid2">
+          <div className="field"><label>Volume (from issue)</label>
+            <input value={volumeLabel} readOnly disabled />
+            <div className="hint">
+              {article?.issueId
+                ? <>Set on the issue — <a className="linkish" href="/issues">edit in Issues</a>.</>
+                : "Assign the article to an issue to inherit its volume and number."}
+            </div></div>
+          <div className="field"><label>Issue number (from issue)</label>
+            <input value={numberLabel} readOnly disabled /></div>
+        </div>
+
+        <div className="grid2">
+          <div className="field"><label>First page</label>
+            <input type="number" min={1} value={v.pageStart ?? ""}
+              onChange={(e) => set("pageStart", e.target.value === "" ? null : Number(e.target.value))} />
+            <div className="hint">Feeds citation_firstpage for Google Scholar.</div></div>
+          <div className="field"><label>Last page</label>
+            <input type="number" min={1} value={v.pageEnd ?? ""}
+              onChange={(e) => set("pageEnd", e.target.value === "" ? null : Number(e.target.value))} /></div>
+        </div>
+
+        <div className="field"><label>Order within the issue</label>
+          <input type="number" min={1} value={v.articleOrder ?? ""}
+            onChange={(e) => set("articleOrder", e.target.value === "" ? null : Number(e.target.value))} />
+          <div className="hint">Position in the table of contents. Leave blank to sort by title.</div></div>
       </div>
 
       <div className="panel">
