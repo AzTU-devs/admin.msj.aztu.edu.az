@@ -209,3 +209,112 @@ a.panel:hover { border-color: var(--accent); }
   display: block; height: 100%; background: var(--accent);
   transition: width .2s ease;
 }
+
+/* ============================================================
+   METRICS REPORT  (screen + print)
+   The PDF is produced by the browser's own print-to-PDF, so this
+   is the whole "PDF design": one stylesheet, selectable text,
+   vector output, and no PDF library to install or patch.
+   ============================================================ */
+.report {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 2rem 2.2rem; color: var(--ink);
+}
+
+/* letterhead */
+.rpt-head {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 1.2rem; align-items: center;
+  border-bottom: 3px solid #1B2354; padding-bottom: 1rem; margin-bottom: 1.6rem;
+}
+.rpt-logo { height: 58px; width: auto; }
+.rpt-journal { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; }
+.rpt-sub { font-size: .82rem; color: var(--ink-2); margin-top: .15rem; }
+.rpt-issn { font-family: var(--f-mono); font-size: .68rem; color: var(--ink-3); margin-top: .3rem; }
+.rpt-meta { text-align: right; }
+.rpt-meta__k {
+  font-family: var(--f-mono); font-size: .55rem; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.rpt-meta__v { font-size: .86rem; font-weight: 600; margin-top: .2rem; }
+.rpt-meta__time { font-weight: 400; color: var(--ink-2); }
+
+.rpt-title { font-size: 1.05rem; font-weight: 700; margin: 0 0 1.4rem; }
+.rpt-section { margin-bottom: 1.9rem; }
+.rpt-h {
+  font-size: .68rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3); border-bottom: 1px solid var(--rule); padding-bottom: .45rem;
+  margin: 0 0 .9rem; display: flex; justify-content: space-between; align-items: baseline;
+}
+.rpt-h small { font-family: var(--f-mono); font-weight: 400; }
+.rpt-empty { font-size: .85rem; color: var(--ink-2); line-height: 1.6; margin: 0; }
+
+/* totals */
+.rpt-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.rpt-stat { background: var(--panel); padding: .8rem .7rem; }
+.rpt-stat__v { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rpt-stat__k {
+  font-family: var(--f-mono); font-size: .52rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); margin-top: .25rem;
+}
+
+/* country bars — CSS rather than canvas, because canvas does not print */
+.rpt-bars { display: grid; gap: .45rem; }
+.rpt-bar { display: grid; grid-template-columns: 12rem 1fr 7rem; gap: .8rem; align-items: center; }
+.rpt-bar__label { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.rpt-bar__flag { font-size: .95rem; }
+.rpt-bar__name { font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rpt-bar__track { height: 12px; background: var(--rule-2); border-radius: 2px; overflow: hidden; }
+.rpt-bar__fill { height: 100%; background: #1B2354; border-radius: 2px; }
+.rpt-bar__num {
+  font-family: var(--f-mono); font-size: .74rem; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rpt-bar__pct { color: var(--ink-3); font-size: .66rem; margin-left: .3rem; }
+
+/* tables */
+.rpt-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.rpt-table th {
+  text-align: left; font-family: var(--f-mono); font-size: .56rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--rule); padding: .4rem .5rem;
+}
+.rpt-table td { padding: .42rem .5rem; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+.rpt-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rpt-doi { font-family: var(--f-mono); font-size: .68rem; color: var(--ink-2); }
+.rpt-title-cell { max-width: 24rem; }
+.rpt-foot {
+  font-family: var(--f-mono); font-size: .6rem; color: var(--ink-3);
+  border-top: 1px solid var(--rule); padding-top: .8rem; margin-top: 1.6rem; text-align: center;
+}
+
+@media (max-width: 900px) {
+  .rpt-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rpt-head { grid-template-columns: auto 1fr; }
+  .rpt-meta { grid-column: 1 / -1; text-align: left; }
+  .rpt-bar { grid-template-columns: 8rem 1fr 5.5rem; }
+  .report { padding: 1.1rem; }
+}
+
+/* ---- print / save-as-PDF ---- */
+@media print {
+  @page { size: A4; margin: 14mm 12mm; }
+  /* Force the light palette: the admin ships dark, and a dark report would
+     burn a whole toner cartridge and read badly on paper. */
+  :root {
+    --bg: #fff; --panel: #fff; --panel-2: #fff;
+    --ink: #10131c; --ink-2: #3c4356; --ink-3: #6b7385;
+    --rule: rgba(16,19,28,.22); --rule-2: rgba(16,19,28,.10);
+  }
+  html, body { background: #fff !important; }
+  .no-print, .sidebar, .topbar, nav, aside, button { display: none !important; }
+  .report { border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+  main, .shell, .shell__main { padding: 0 !important; margin: 0 !important; display: block !important; }
+  /* Repeat table headers on every page and never split a row across a break. */
+  .rpt-table thead { display: table-header-group; }
+  .rpt-table tr { page-break-inside: avoid; break-inside: avoid; }
+  .rpt-break { page-break-before: always; break-before: page; }
+  .rpt-section { page-break-inside: auto; }
+  .rpt-h { page-break-after: avoid; break-after: avoid; }
+  .rpt-bar__fill, .rpt-head { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  a[href]::after { content: ""; }
+}

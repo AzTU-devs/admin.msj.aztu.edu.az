@@ -13,6 +13,7 @@ const NAV: { section?: string; requires: string[]; items: { href: string; label:
   { requires: EDITORIAL, items: [
     { href: "/", label: "Dashboard" },
     { href: "/articles", label: "Submissions" },
+    { href: "/reports", label: "Metrics report" },
     { href: "/articles/new", label: "Add article" },
   ] },
   { section: "Review", requires: ["REVIEWER"], items: [

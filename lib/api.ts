@@ -110,6 +110,52 @@ export const api = {
     }>("/api/v1/admin/citations/sync", { method: "POST" }),
 };
 
+// ==================== METRICS REPORT ====================
+export interface ReportArticleRow {
+  id: number; title: string; doi: string | null; subjectArea: string | null;
+  issueTitle: string | null; issueYear: number | null; issueNumber: number | null;
+  pageStart: number | null; pageEnd: number | null;
+  views: number; downloads: number; citations: number;
+}
+export interface ReportIssueRow {
+  id: number; title: string; year: number | null; number: number | null; volume: number | null;
+  status: string; articles: number; views: number; downloads: number; citations: number;
+}
+export interface ReportCountryRow { code: string; views: number; }
+export interface MetricsExport {
+  generatedAt: string;
+  totals: { articles: number; publishedArticles: number; issues: number;
+            views: number; downloads: number; citations: number };
+  articles: ReportArticleRow[];
+  issues: ReportIssueRow[];
+  countries: ReportCountryRow[];
+}
+
+export const reports = {
+  metrics: () => request<MetricsExport>("/api/v1/admin/reports/metrics"),
+};
+
+/** ISO-3166-1 alpha-2 -> English name, for the reader-country table. "??" is
+ *  the bucket for events recorded before country capture existed. */
+export const COUNTRY_NAMES: Record<string, string> = {
+  "??": "Unknown", AZ: "Azerbaijan", TR: "Türkiye", RU: "Russia", US: "United States",
+  DE: "Germany", GB: "United Kingdom", CN: "China", IN: "India", IR: "Iran", UA: "Ukraine",
+  PL: "Poland", FR: "France", IT: "Italy", ES: "Spain", NL: "Netherlands", JP: "Japan",
+  KR: "South Korea", BR: "Brazil", CA: "Canada", AU: "Australia", KZ: "Kazakhstan",
+  UZ: "Uzbekistan", GE: "Georgia", BY: "Belarus", RO: "Romania", CZ: "Czechia",
+  VN: "Vietnam", ID: "Indonesia", PK: "Pakistan", EG: "Egypt", SA: "Saudi Arabia",
+  AE: "United Arab Emirates", IQ: "Iraq", MY: "Malaysia", TH: "Thailand", NG: "Nigeria",
+  ZA: "South Africa", MX: "Mexico", AR: "Argentina", SE: "Sweden", CH: "Switzerland",
+  AT: "Austria", BE: "Belgium", PT: "Portugal", GR: "Greece", NO: "Norway", FI: "Finland",
+  DK: "Denmark", IE: "Ireland", IL: "Israel", SG: "Singapore", TW: "Taiwan", BD: "Bangladesh",
+};
+
+/** "AZ" -> the regional-indicator flag emoji. Purely presentational. */
+export function countryFlag(code: string): string {
+  if (!/^[A-Z]{2}$/.test(code)) return "🌐";
+  return String.fromCodePoint(...[...code].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
 export const ARTICLE_STATUSES = [
   "SUBMITTED", "WITH_EDITOR", "UNDER_REVIEW", "REVISION_REQUESTED", "RESUBMITTED",
   "ACCEPTED", "REJECTED", "COPYEDITING", "IN_PRODUCTION", "PUBLISHED", "WITHDRAWN",

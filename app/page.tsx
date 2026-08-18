@@ -70,10 +70,16 @@ export default function DashboardPage() {
           <h1 className="page-h">Dashboard</h1>
           <p className="page-sub">Machine Science · editorial overview</p>
         </div>
-        <button className="btn btn--ghost" disabled={citBusy} onClick={syncCitations}
-          title="Match missing DOIs and re-read citation counts from Crossref">
-          {citBusy ? "Syncing…" : "↻ Refresh citations"}
-        </button>
+        <div style={{ display: "flex", gap: ".6rem", flexWrap: "wrap" }}>
+          <button className="btn btn--ghost" disabled={citBusy} onClick={syncCitations}
+            title="Match missing DOIs and re-read citation counts from Crossref">
+            {citBusy ? "Syncing…" : "↻ Refresh citations"}
+          </button>
+          <a className="btn" href="/reports"
+            title="Full metrics for every article and issue, with reader countries — printable as PDF">
+            ⤓ Export metrics (PDF)
+          </a>
+        </div>
       </div>
       {err && <div className="err">{err}</div>}
       {citNote && <div className="ok-msg">{citNote}</div>}
