@@ -487,9 +487,30 @@ export interface NewArticleInput {
 
 // ==================== USERS & ROLES (super-admin) ====================
 export interface AdminUser { id: number; email: string; firstName: string; lastName: string; status: string; roles: string[]; }
+
+/** Everything the directory holds about an account. The password hash is never sent. */
+export interface AdminUserDetail extends AdminUser {
+  middleName: string | null; title: string | null; degree: string | null; position: string | null;
+  affiliation: string | null; country: string | null; city: string | null; postalCode: string | null;
+  phone: string | null; orcid: string | null; scopusId: string | null; websiteUrl: string | null;
+  avatarUrl: string | null; bio: string | null;
+  emailVerified: boolean; emailVerifiedAt: string | null;
+  availableReviewer: boolean; preferredLocale: string;
+  lastLoginAt: string | null; createdAt: string | null; updatedAt: string | null;
+  submissionCount: number;
+}
+
 export const ROLE_OPTIONS = ["ADMIN", "EDITOR_IN_CHIEF", "EDITOR", "REVIEWER", "AUTHOR"];
+
+/** ACTIVE and BLOCKED are the two an admin toggles between; PENDING is pre-verification. */
+export const USER_STATUSES = ["ACTIVE", "BLOCKED", "PENDING"] as const;
+
 export const users = {
   list: () => request<AdminUser[]>("/api/v1/admin/users"),
+  detail: (id: number) => request<AdminUserDetail>(`/api/v1/admin/users/${id}`),
   setRoles: (id: number, roles: string[]) =>
     request<AdminUser>(`/api/v1/admin/users/${id}/roles`, { method: "PUT", body: JSON.stringify({ roles }) }),
+  setStatus: (id: number, status: string) =>
+    request<AdminUser>(`/api/v1/admin/users/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  remove: (id: number) => request<void>(`/api/v1/admin/users/${id}`, { method: "DELETE" }),
 };
