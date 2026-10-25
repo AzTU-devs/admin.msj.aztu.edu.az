@@ -34,6 +34,8 @@ const NAV: { section?: string; requires: string[]; items: { href: string; label:
   ] },
   { section: "Admin", requires: ["ADMIN"], items: [
     { href: "/users", label: "Users & Roles" },
+    { href: "/security/ip-blocks", label: "Blocked IPs" },
+    { href: "/security/audit", label: "Audit Log" },
   ] },
 ];
 

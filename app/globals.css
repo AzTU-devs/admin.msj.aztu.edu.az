@@ -318,3 +318,32 @@ a.panel:hover { border-color: var(--accent); }
   .rpt-bar__fill, .rpt-head { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   a[href]::after { content: ""; }
 }
+
+/* security console (Blocked IPs, Audit Log, user sessions) */
+.mono { font-family: var(--f-mono); font-size: .78rem; }
+.table-wrap { overflow-x: auto; }
+.sec-form { display: grid; grid-template-columns: minmax(180px, 1.1fr) minmax(200px, 2fr) minmax(130px, .8fr) auto; gap: .8rem; align-items: end; }
+.sec-form .field { margin-bottom: 0; }
+.sec-form__go .btn { padding: .62rem 1.3rem; }
+@media (max-width: 900px) { .sec-form { grid-template-columns: 1fr; } }
+.audit-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .8rem; margin-bottom: .4rem; }
+.audit-filters .field input, .audit-filters .field select { width: 100%; background: var(--bg); border: 1px solid var(--rule); border-radius: 6px; padding: .55rem .7rem; color: var(--ink); font-size: .85rem; font-family: inherit; }
+.audit-row { cursor: pointer; }
+.audit-detail { background: var(--panel-2); }
+.audit-detail .kv { grid-template-columns: 110px 1fr; }
+.audit-meta { margin: 0; font-family: var(--f-mono); font-size: .74rem; white-space: pre-wrap; word-break: break-word; color: var(--ink-2); }
+.pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem; }
+.pill.outcome-SUCCESS { color: var(--ink-2); }
+.pill.outcome-FAILURE { color: var(--accent-ink); border-color: rgba(210,167,72,.45); }
+.pill.outcome-DENIED { color: var(--danger); border-color: rgba(226,96,74,.45); }
+.pill.AUTO { color: var(--accent-ink); border-color: rgba(210,167,72,.45); }
+.pill.DELETED { color: var(--ink-3); }
+.card--action { text-align: left; color: inherit; font: inherit; cursor: pointer; transition: border-color .15s; }
+.card--action:hover { border-color: var(--accent); }
+.card--warn .card__v { color: var(--accent-ink); }
+.card--danger { border-color: rgba(226,96,74,.55); }
+.card--danger .card__v { color: var(--danger); }
+.sessions { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .4rem; }
+.sessions th { text-align: left; font-family: var(--f-mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding: .4rem .5rem; border-bottom: 1px solid var(--rule); }
+.sessions td { padding: .45rem .5rem; border-bottom: 1px solid var(--rule-2); vertical-align: top; }
+.user-sec { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .8rem 0 .4rem; }

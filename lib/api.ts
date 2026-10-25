@@ -38,7 +38,17 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   return res.json() as Promise<T>;
 }
 
-async function tryRefresh(): Promise<boolean> {
+// One refresh at a time. A page that fires several requests as its access token
+// expires would otherwise send the same refresh token several times — and the
+// server treats a rotated-out token coming back as a stolen one being replayed.
+let refreshing: Promise<boolean> | null = null;
+
+function tryRefresh(): Promise<boolean> {
+  if (!refreshing) refreshing = doRefresh().finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+async function doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE}/api/v1/auth/refresh`, {
       method: "POST",
@@ -497,13 +507,25 @@ export interface AdminUserDetail extends AdminUser {
   emailVerified: boolean; emailVerifiedAt: string | null;
   availableReviewer: boolean; preferredLocale: string;
   lastLoginAt: string | null; createdAt: string | null; updatedAt: string | null;
-  submissionCount: number;
+  submissionCount: number; reviewCount: number; reviewAssignmentCount: number;
+  /** Seconds left on a lockout after repeated wrong passwords; 0 = not locked. */
+  signInLockedForSeconds: number;
+  /** False when deleting would break the editorial record — erase (anonymise) instead. */
+  deletable: boolean;
+  sessions: UserSession[];
+}
+
+/** One sign-in: where it came from and whether it is still live. */
+export interface UserSession {
+  id: number; createdAt: string; expiresAt: string; active: boolean;
+  ipAddress: string | null; userAgent: string | null;
 }
 
 export const ROLE_OPTIONS = ["ADMIN", "EDITOR_IN_CHIEF", "EDITOR", "REVIEWER", "AUTHOR"];
 
-/** ACTIVE and BLOCKED are the two an admin toggles between; PENDING is pre-verification. */
-export const USER_STATUSES = ["ACTIVE", "BLOCKED", "PENDING"] as const;
+/** ACTIVE and BLOCKED are the two an admin toggles between; PENDING is pre-verification;
+ *  DELETED is an erased account kept only so the editorial record stays intact. */
+export const USER_STATUSES = ["ACTIVE", "BLOCKED", "PENDING", "DELETED"] as const;
 
 export const users = {
   list: () => request<AdminUser[]>("/api/v1/admin/users"),
@@ -513,4 +535,111 @@ export const users = {
   setStatus: (id: number, status: string) =>
     request<AdminUser>(`/api/v1/admin/users/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   remove: (id: number) => request<void>(`/api/v1/admin/users/${id}`, { method: "DELETE" }),
+  /** Clears every personal field but keeps the row, for accounts with editorial history. */
+  anonymize: (id: number) =>
+    request<AdminUser>(`/api/v1/admin/users/${id}/anonymize`, { method: "POST" }),
+  /** Signs the account out of every device now. */
+  revokeSessions: (id: number) =>
+    request<void>(`/api/v1/admin/users/${id}/revoke-sessions`, { method: "POST" }),
+  /** Lifts a lockout caused by repeated wrong passwords. */
+  unlock: (id: number) => request<void>(`/api/v1/admin/users/${id}/unlock`, { method: "POST" }),
+};
+
+// ==================== SECURITY CONSOLE (super-admin) ====================
+export interface IpBlock {
+  id: number; cidr: string; reason: string | null; source: "MANUAL" | "AUTO";
+  createdByEmail: string | null; createdAt: string | null; expiresAt: string | null;
+  active: boolean; hitCount: number; lastHitAt: string | null;
+}
+export interface AuditRow {
+  id: number; createdAt: string; actorId: number | null; actorEmail: string | null;
+  action: string; outcome: "SUCCESS" | "FAILURE" | "DENIED";
+  entity: string | null; entityId: string | null; summary: string | null;
+  ipAddress: string | null; userAgent: string | null; metadata: Record<string, unknown> | null;
+}
+export interface SecurityOverview {
+  signInsOk24h: number; signInsFailed24h: number; lockouts24h: number; accessDenied24h: number;
+  rateLimited24h: number; autoBlocks24h: number; tokenReuse24h: number; activeIpBlocks: number;
+  /** The address the API sees this admin connecting from — a block covering it is refused. */
+  yourIp: string; actions: string[];
+}
+export interface AuditFilter {
+  action?: string; outcome?: string; q?: string; ip?: string;
+  entity?: string; entityId?: string; from?: string; to?: string;
+}
+
+function query(params: Record<string, string | number | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") q.set(k, String(v));
+  return q.toString();
+}
+
+/** Fetches a protected file with the auth header and hands it to the browser as a download. */
+async function downloadAuthed(path: string, fallbackName: string, retry = true): Promise<void> {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: auth.access ? { Authorization: `Bearer ${auth.access}` } : {},
+  });
+  if (res.status === 401 && retry && auth.refresh && (await tryRefresh())) {
+    return downloadAuthed(path, fallbackName, false);
+  }
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  const name = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") || "")?.[1] || fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+export const security = {
+  overview: () => request<SecurityOverview>("/api/v1/admin/security/overview"),
+  auditLogs: (f: AuditFilter, page = 0, size = 50) =>
+    request<PageResp<AuditRow>>(`/api/v1/admin/security/audit-logs?${query({ ...f, page, size })}`),
+  exportAuditCsv: (f: AuditFilter) =>
+    downloadAuthed(`/api/v1/admin/security/audit-logs/export?${query({ ...f })}`, "msj-audit-log.csv"),
+  ipBlocks: () => request<IpBlock[]>("/api/v1/admin/security/ip-blocks"),
+  /** minutes: null = permanent. */
+  block: (cidr: string, reason: string, minutes: number | null) =>
+    request<IpBlock>("/api/v1/admin/security/ip-blocks", {
+      method: "POST",
+      body: JSON.stringify({ cidr, reason, minutes }),
+    }),
+  unblock: (id: number) => request<void>(`/api/v1/admin/security/ip-blocks/${id}`, { method: "DELETE" }),
+};
+
+/** Durations offered when blocking an address. */
+export const BLOCK_DURATIONS: { label: string; minutes: number | null }[] = [
+  { label: "1 hour", minutes: 60 },
+  { label: "24 hours", minutes: 1440 },
+  { label: "7 days", minutes: 10080 },
+  { label: "30 days", minutes: 43200 },
+  { label: "Permanent", minutes: null },
+];
+
+/** Human labels for audit actions; unknown ones fall back to the code itself. */
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  LOGIN_SUCCESS: "Signed in", LOGIN_FAILURE: "Failed sign-in", LOGIN_LOCKED_OUT: "Sign-in refused (locked)",
+  ACCOUNT_LOCKED: "Account locked", LOGIN_REJECTED_INACTIVE: "Sign-in refused (inactive)",
+  LOGOUT: "Signed out", REGISTER: "Registered", REFRESH_TOKEN_REUSE: "Stolen token replay",
+  ACCESS_DENIED: "Access denied", RATE_LIMITED: "Rate limited",
+  USER_ROLES_CHANGED: "Roles changed", USER_BLOCKED: "User blocked", USER_UNBLOCKED: "User unblocked",
+  USER_STATUS_CHANGED: "Status changed", USER_SESSIONS_REVOKED: "Signed out everywhere",
+  USER_SIGNIN_UNLOCKED: "Lockout cleared", USER_DELETED: "User deleted", USER_ANONYMIZED: "User data erased",
+  IP_BLOCKED: "IP blocked", IP_UNBLOCKED: "IP unblocked", IP_AUTO_BLOCKED: "IP auto-blocked",
+  AUDIT_EXPORTED: "Audit log exported",
+  ARTICLE_STATUS_CHANGED: "Article status changed", EDITORIAL_DECISION: "Editorial decision",
+  REVIEWERS_ASSIGNED: "Reviewers assigned", REVIEWER_UNASSIGNED: "Reviewer unassigned",
+  ARTICLE_FILE_UPLOADED: "Article file uploaded", ARTICLE_PDF_LINKED: "Article PDF linked",
+  ARTICLE_FILE_DELETED: "Article file deleted", ARTICLE_CREATED: "Article created",
+  ARTICLE_UPDATED: "Article updated", ARTICLE_DELETED: "Article deleted",
+  SETTINGS_UPDATED: "Settings updated", ASSET_UPLOADED: "Asset uploaded", YEAR_OPENED: "Year opened",
+  CITATIONS_REFRESHED: "Citations refreshed", CONTENT_CREATED: "Content created",
+  CONTENT_UPDATED: "Content updated", CONTENT_DELETED: "Content deleted",
+  SUBMISSION_CREATED: "Submission created", SUBMISSION_UPDATED: "Submission updated",
+  SUBMISSION_FILE_UPLOADED: "Submission file uploaded", SUBMISSION_FILE_DELETED: "Submission file deleted",
+  SUBMISSION_SUBMITTED: "Submission sent", REVIEW_INVITATION_ANSWERED: "Review invitation answered",
+  REVIEW_SUBMITTED: "Review submitted", FILE_DOWNLOADED: "Protected file downloaded",
 };

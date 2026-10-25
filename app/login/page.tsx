@@ -37,11 +37,11 @@ export default function LoginPage() {
         {error && <div className="err">{error}</div>}
         <div className="field">
           <label>Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus autoComplete="username" />
         </div>
         <div className="field">
           <label>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         </div>
         <button className="btn" style={{ width: "100%" }} disabled={busy}>
           {busy ? "Signing in…" : "Sign in"}

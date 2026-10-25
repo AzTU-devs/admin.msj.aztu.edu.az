@@ -22,7 +22,13 @@ export default function RegisterPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Mirrors the server's policy (AuthService.checkPasswordPolicy) so the common
+    // mistakes are caught before a round-trip; the server remains the authority.
     if (f.password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (new TextEncoder().encode(f.password).length > 72) { setError("Password must be at most 72 bytes."); return; }
+    if (!/\p{L}/u.test(f.password) || !/\d/.test(f.password)) {
+      setError("Password must contain at least one letter and one digit."); return;
+    }
     setError(""); setBusy(true);
     try {
       const res = await api.register(f);
@@ -60,8 +66,9 @@ export default function RegisterPage() {
           <input type="email" value={f.email} onChange={(e) => set("email", e.target.value)} required /></div>
 
         <div className="field"><label>Password *</label>
-          <input type="password" value={f.password} onChange={(e) => set("password", e.target.value)} required />
-          <div className="hint">At least 8 characters.</div></div>
+          <input type="password" value={f.password} onChange={(e) => set("password", e.target.value)} required
+            autoComplete="new-password" minLength={8} maxLength={72} />
+          <div className="hint">8–72 characters, with at least one letter and one digit. Do not reuse your e-mail.</div></div>
 
         <div className="grid2">
           <div className="field"><label>Degree *</label>

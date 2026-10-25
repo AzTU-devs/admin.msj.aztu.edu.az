@@ -4,3 +4,6 @@
 .env*.local
 *.tsbuildinfo
 next-env.d.ts
+
+# macOS AppleDouble metadata written next to every file on exFAT/FAT drives
+._*
